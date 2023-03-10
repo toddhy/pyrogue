@@ -2,7 +2,10 @@
 
 import tcod as tcod
 
+<<<<<<< HEAD
 MAX_ROOM_MONSTERS = 3
+=======
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 # size of window
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 50
@@ -60,9 +63,13 @@ class Tile:
 class Object:
 	# this is a generic object: the player, a monster, an item, the stairs, etc.
 	# it's always represented by a character on the screen.
+<<<<<<< HEAD
 	def __init__(self, x, y, char, name, color, blocks=False):
 		self.name = name
 		self.blocks = blocks
+=======
+	def __init__(self, x, y, char, color):
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 		self.x = x
 		self.y = y
 		self.char = char
@@ -70,8 +77,12 @@ class Object:
 
 	def move(self, dx, dy):
 		# move by the given amount, if the destination is not blocked
+<<<<<<< HEAD
 		#if not map[self.x + dx][self.y + dy].blocked:
 		if not is_blocked(self.x + dx, self.y + dy):
+=======
+		if not map[self.x + dx][self.y + dy].blocked:
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 			self.x += dx
 			self.y += dy
 
@@ -153,7 +164,10 @@ def make_map():
 					create_v_tunnel(prev_y, new_y, new_x)
 					create_h_tunnel(prev_x, new_x, new_y)
 
+<<<<<<< HEAD
 			place_objects(new_room)
+=======
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 			#finally, append the new room to the list
 			rooms.append(new_room)
 			num_rooms += 1
@@ -238,6 +252,7 @@ def is_blocked(x, y):
 	if map[x][y].blocked:
 		return True
 
+<<<<<<< HEAD
 	# now check for any blocking objects
 	for object in objects:
 		if object.blocks and object.x == x and object.y == y:
@@ -249,6 +264,17 @@ def is_blocked(x, y):
 game_state = 'playing'
 player_action = None
 
+=======
+	# movement keys
+	if tcod.console_is_key_pressed(tcod.KEY_UP):
+		player.move(0, -1)
+	elif tcod.console_is_key_pressed(tcod.KEY_DOWN):
+		player.move(0, 1)
+	elif tcod.console_is_key_pressed(tcod.KEY_LEFT):
+		player.move(-1, 0)
+	elif tcod.console_is_key_pressed(tcod.KEY_RIGHT):
+		player.move(1, 0)
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 
 #########################################
 # Initialization & Main Loop
@@ -260,10 +286,20 @@ tcod.sys_set_fps(LIMIT_FPS)
 con = tcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 # create object representing player
+<<<<<<< HEAD
 player = Object(0, 0, '@', 'player', tcod.white, blocks=True)
 
 # the list of objects
 objects = [player]
+=======
+player = Object(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, '@', tcod.white)
+
+# create an npc
+npc = Object(SCREEN_WIDTH // 2 - 5, SCREEN_HEIGHT // 2, '@', tcod.yellow)
+
+# the list of objects
+objects = [npc, player]
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 
 #generate map (at this point it's not drawn to the screen)
 make_map()
@@ -280,6 +316,11 @@ while not tcod.console_is_window_closed():
 		object.clear()
 
 	# handle keys and exit game if needed
+<<<<<<< HEAD
 	player_action = handle_keys()
 	if player_action == 'exit':
+=======
+	exit = handle_keys()
+	if exit:
+>>>>>>> be15a960d11e6e2acec49f0e489c589cb60eae7d
 		break
