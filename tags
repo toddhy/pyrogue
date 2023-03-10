@@ -1,0 +1,45 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+LIMIT_FPS	pyrogue.py	/^LIMIT_FPS = 20 # 20 frames per second maximum$/;"	v
+MAP_HEIGHT	pyrogue.py	/^MAP_HEIGHT = 45$/;"	v
+MAP_WIDTH	pyrogue.py	/^MAP_WIDTH = 80$/;"	v
+MAX_ROOMS	pyrogue.py	/^MAX_ROOMS = 30$/;"	v
+MAX_ROOM_MONSTERS	pyrogue.py	/^MAX_ROOM_MONSTERS = 3$/;"	v
+Object	pyrogue.py	/^class Object:$/;"	c
+ROOM_MAX_SIZE	pyrogue.py	/^ROOM_MAX_SIZE = 10 $/;"	v
+ROOM_MIN_SIZE	pyrogue.py	/^ROOM_MIN_SIZE = 6 $/;"	v
+Rect	pyrogue.py	/^class Rect:$/;"	c
+SCREEN_HEIGHT	pyrogue.py	/^SCREEN_HEIGHT = 50$/;"	v
+SCREEN_WIDTH	pyrogue.py	/^SCREEN_WIDTH = 80$/;"	v
+Tile	pyrogue.py	/^class Tile:$/;"	c
+__init__	pyrogue.py	/^	def __init__(self, blocked, block_sight = None):$/;"	m	class:Tile
+__init__	pyrogue.py	/^	def __init__(self, x, y, char, name, color, blocks=False):$/;"	m	class:Object
+__init__	pyrogue.py	/^	def __init__(self, x, y, w, h):$/;"	m	class:Rect
+center	pyrogue.py	/^	def center(self):$/;"	m	class:Rect
+clear	pyrogue.py	/^	def clear(self):$/;"	m	class:Object
+color_dark_ground	pyrogue.py	/^color_dark_ground = tcod.Color(50, 50, 150)$/;"	v
+color_dark_wall	pyrogue.py	/^color_dark_wall = tcod.Color(0, 0, 100)$/;"	v
+con	pyrogue.py	/^con = tcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)$/;"	v
+create_h_tunnel	pyrogue.py	/^def create_h_tunnel(x1, x2, y):$/;"	f
+create_room	pyrogue.py	/^def create_room(room):$/;"	f
+create_v_tunnel	pyrogue.py	/^def create_v_tunnel(y1, y2, x):$/;"	f
+draw	pyrogue.py	/^	def draw(self):$/;"	m	class:Object
+font_flags	pyrogue.py	/^font_flags = tcod.FONT_TYPE_GREYSCALE | tcod.FONT_LAYOUT_TCOD$/;"	v
+font_path	pyrogue.py	/^font_path = 'arial10x10.png'$/;"	v
+fullscreen	pyrogue.py	/^fullscreen = False$/;"	v
+handle_keys	pyrogue.py	/^def handle_keys():$/;"	f
+intersect	pyrogue.py	/^	def intersect(self, other):$/;"	m	class:Rect
+is_blocked	pyrogue.py	/^def is_blocked(x, y):$/;"	f
+make_map	pyrogue.py	/^def make_map():$/;"	f
+move	pyrogue.py	/^	def move(self, dx, dy):$/;"	m	class:Object
+objects	pyrogue.py	/^objects = [player]$/;"	v
+place_objects	pyrogue.py	/^def place_objects(room):$/;"	f
+player	pyrogue.py	/^player = Object(0, 0, '@', 'player', tcod.white, blocks=True)$/;"	v
+player_x	pyrogue.py	/^player_x = SCREEN_WIDTH \/\/ 2$/;"	v
+player_y	pyrogue.py	/^player_y = SCREEN_HEIGHT \/\/ 2$/;"	v
+render_all	pyrogue.py	/^def render_all():$/;"	f
+window_title	pyrogue.py	/^window_title = 'pyrogue'$/;"	v
