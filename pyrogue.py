@@ -204,13 +204,13 @@ def handle_keys():
 	if game_state == 'playing':
 		# movement keys
 		if tcod.console_is_key_pressed(tcod.KEY_UP):
-			player.move(0, -1)
+			player_move_or_attack(0, -1)
 		elif tcod.console_is_key_pressed(tcod.KEY_DOWN):
-			player.move(0, 1)
+			player_move_or_attack(0, 1)
 		elif tcod.console_is_key_pressed(tcod.KEY_LEFT):
-			player.move(-1, 0)
+			player_move_or_attack(-1, 0)
 		elif tcod.console_is_key_pressed(tcod.KEY_RIGHT):
-			player.move(1, 0)
+			player_move_or_attack(1, 0)
 	else:
 		return 'didnt-take-turn'
 
@@ -244,6 +244,28 @@ def is_blocked(x, y):
 			return True
 
 	return False
+
+def player_move_or_attack(dx, dy):
+	global fov_recompute
+
+	# the coordinates the player is moving to/attacking
+	x = player.x + dx
+	y = player.y + dy
+
+	# try to find an attackable object there
+	target = None
+	for object in objects:
+		if object.x == x and object.y == y:
+			target = object
+			break
+	
+	# attack if target found, move otherwise
+	if target is not None:
+		print('The ' + target.name + ' laughs at your puny efforts to attack him!')
+	else:
+		player.move(dx,dy)
+		fov_recompute = True
+
 
 
 game_state = 'playing'
@@ -281,5 +303,10 @@ while not tcod.console_is_window_closed():
 
 	# handle keys and exit game if needed
 	player_action = handle_keys()
+	# let monsters take their turn
+	if game_state == 'playing' and player_action != 'didnt-take-turn':
+		for object in objects:
+			if object != player:
+				print('The ' + object.name + ' growls!')
 	if player_action == 'exit':
 		break
