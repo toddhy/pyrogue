@@ -60,13 +60,21 @@ class Tile:
 class Object:
 	# this is a generic object: the player, a monster, an item, the stairs, etc.
 	# it's always represented by a character on the screen.
-	def __init__(self, x, y, char, name, color, blocks=False):
+	def __init__(self, x, y, char, name, color, blocks=False, fighter=None, ai=None):
 		self.name = name
 		self.blocks = blocks
 		self.x = x
 		self.y = y
 		self.char = char
 		self.color = color
+
+		self.fighter = fighter
+		if self.fighter:   # let the fighter component know who owns it
+			self.fighter.owner = self
+
+		self.ai = ai
+		if self.ai:   # let the AI component know who owns it
+			self.ai.owner = self
 
 	def move(self, dx, dy):
 		# move by the given amount, if the destination is not blocked
@@ -83,6 +91,19 @@ class Object:
 	def clear(self):
 		# erase the character that represents this object
 		tcod.console_put_char(con, self.x, self.y, ' ', tcod.BKGND_NONE)
+
+class Fighter:
+	#combat-related properties and methods (monster, player, NPC)
+	def __init__(self, hp, defense, power):
+		self.max_hp = hp
+		self.hp = hp
+		self.defense = defense
+		self.power = power
+
+class BasicMonster:
+	#AI for a basic monster
+	def take_turn(self):
+		print('The ' + self.owner.name + ' growls!')
 
 def create_room(room):
 	global map
@@ -226,10 +247,18 @@ def place_objects(room):
 		if not is_blocked(x, y):
 			if tcod.random_get_int(0, 0, 100) < 80:  # 80% chance of orc
 				#create an orc
-				monster = Object(x, y, 'o', 'orc', tcod.desaturated_green)
+				fighter_component = Fighter(hp=10, defense=0, power=3)
+				ai_component = BasicMonster()
+
+				monster = Object(x, y, 'o', 'orc', tcod.desaturated_green,
+					blocks=True,fighter=fighter_component, ai=ai_component)
 			else:
 				# create a troll
-				monster = Object(x, y, 'T', 'troll', tcod.darker_green)
+				fighter_component = Fighter(hp=16, defense=1, power=4)
+				ai_component = BasicMonster()
+
+				monster = Object(x, y, 'T', 'troll', tcod.darker_green,
+					blocks=True,fighter=fighter_component, ai=ai_component)
 
 			objects.append(monster)
 
@@ -282,7 +311,8 @@ tcod.sys_set_fps(LIMIT_FPS)
 con = tcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 # create object representing player
-player = Object(0, 0, '@', 'player', tcod.white, blocks=True)
+fighter_component = Fighter(hp=30, defense=2, power=5)
+player = Object(0, 0, '@', 'player', tcod.white, blocks=True, fighter=fighter_component)
 
 # the list of objects
 objects = [player]
