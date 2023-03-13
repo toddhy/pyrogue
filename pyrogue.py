@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import tcod as tcod
+import tcod as tcod, math
 
 MAX_ROOM_MONSTERS = 3
 # size of window
@@ -82,6 +82,18 @@ class Object:
 		if not is_blocked(self.x + dx, self.y + dy):
 			self.x += dx
 			self.y += dy
+	
+	def move_towards(self, target_x, target_y):
+		# vector from this object to the target, and distance
+		dx = target_x - self.x
+		dy = target_y - self.y
+		distance = math.sqrt(dx ** 2 + dy ** 2)
+		
+		#normalize it to length 1 (preserving direction), then round it and
+		#conver to integer so the movement is restricted to the map grid
+		dx = int(round(dx / distance))
+		dy = int(round(dy / distance))
+		self.move(dx, dy)
 
 	def draw(self):
 		# set the color and then draw the character that represented this object at its position
@@ -91,6 +103,12 @@ class Object:
 	def clear(self):
 		# erase the character that represents this object
 		tcod.console_put_char(con, self.x, self.y, ' ', tcod.BKGND_NONE)
+
+	def distance_to(self, other):
+		#return the ditance to another object
+		dx = other.x - self.x
+		dy = other.y - self.y
+		return math.sqrt(dx ** 2 + dy ** 2)
 
 class Fighter:
 	#combat-related properties and methods (monster, player, NPC)
@@ -103,7 +121,16 @@ class Fighter:
 class BasicMonster:
 	#AI for a basic monster
 	def take_turn(self):
-		print('The ' + self.owner.name + ' growls!')
+		# a basic monster takes its turn. If you can see it, it can see you.
+		monster = self.owner
+		if tcod.map_is_in_fov(fov_map, monster.x, monster.y):
+			# move towards the player if far away
+			if monster.distance_to(player) >= 2:
+				monster.move_towards(player.x, player.y)
+
+			# close enough, attack! (if the player is still alive)
+			elif player.fighter.hp > 0:
+				print('The attack of the ' + monster.name + ' bounces off your shiny metal armor!')
 
 def create_room(room):
 	global map
@@ -193,17 +220,22 @@ def create_v_tunnel(y1, y2, x):
 		map[x][y].block_sight = False
 		
 def render_all():
-	global color_light_wall
-	global color_light_ground
+	global fov_map, color_dark_wall, color_light_wall
+	global color_light_ground, color_dark_ground
+	global fov_recompute
 
-	# go through all the tiles, and set their background color
-	for y in range(MAP_HEIGHT):
-		for x in range(MAP_WIDTH):
-			wall = map[x][y].block_sight
-			if wall:
-				tcod.console_set_char_background(con, x, y, color_dark_wall, tcod.BKGND_SET)
-			else:
-				tcod.console_set_char_background(con, x, y, color_dark_ground, tcod.BKGND_SET)
+	if fov_recompute:
+		fov_recompute = False
+		tcod.map_compute_fov(fov_map, player.x, player.y)
+		# go through all the tiles, and set their background color
+		for y in range(MAP_HEIGHT):
+			for x in range(MAP_WIDTH):
+				visible = tcod.map_is_in_fov(fov_map, x, y)
+				wall = map[x][y].block_sight
+				if wall:
+					tcod.console_set_char_background(con, x, y, color_dark_wall, tcod.BKGND_SET)
+				else:
+					tcod.console_set_char_background(con, x, y, color_dark_ground, tcod.BKGND_SET)
 
 	# draw all objects in the list
 	for object in objects:
@@ -320,6 +352,16 @@ objects = [player]
 #generate map (at this point it's not drawn to the screen)
 make_map()
 
+# create the FOV map, according to the generated map
+fov_map = tcod.map_new(MAP_WIDTH, MAP_HEIGHT)
+for y in range(MAP_HEIGHT):
+	for x in range (MAP_WIDTH):
+		tcod.map_set_properties(fov_map, x, y, not map[x][y].block_sight, not map[x][y].blocked)
+
+fov_recompute = True
+game_state = 'playing'
+player_action = None
+
 while not tcod.console_is_window_closed():
 
 	# render the screen
@@ -333,10 +375,11 @@ while not tcod.console_is_window_closed():
 
 	# handle keys and exit game if needed
 	player_action = handle_keys()
+	if player_action == 'exit':
+		break
+
 	# let monsters take their turn
 	if game_state == 'playing' and player_action != 'didnt-take-turn':
 		for object in objects:
-			if object != player:
-				print('The ' + object.name + ' growls!')
-	if player_action == 'exit':
-		break
+			if object.ai:
+				object.ai.take_turn()
