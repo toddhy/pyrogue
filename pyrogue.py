@@ -2,6 +2,11 @@
 
 import tcod as tcod, math
 
+# FOV constants
+FOV_ALGO = 0
+FOV_LIGHT_WALLS = True
+TORCH_RADIUS = 10
+
 MAX_ROOM_MONSTERS = 3
 # size of window
 SCREEN_WIDTH = 80
@@ -14,7 +19,9 @@ MAP_HEIGHT = 45
 LIMIT_FPS = 20 # 20 frames per second maximum
 
 color_dark_wall = tcod.Color(0, 0, 100)
+color_light_wall = tcod.Color(130, 110, 50)
 color_dark_ground = tcod.Color(50, 50, 150)
+color_light_ground = tcod.Color(200, 180, 50)
 
 font_path = 'arial10x10.png'
 font_flags = tcod.FONT_TYPE_GREYSCALE | tcod.FONT_LAYOUT_TCOD
@@ -51,6 +58,7 @@ class Tile:
 	# a tile of the map and its properties
 	def __init__(self, blocked, block_sight = None):
 		self.blocked = blocked
+		self.explored = False
 
 		# by default, if a tile is blocked, it also blocks sight
 		####### Try to understand this later ########
@@ -96,9 +104,10 @@ class Object:
 		self.move(dx, dy)
 
 	def draw(self):
-		# set the color and then draw the character that represented this object at its position
-		tcod.console_set_default_foreground(con, self.color)
-		tcod.console_put_char(con, self.x, self.y, self.char, tcod.BKGND_NONE)
+		if tcod.map_is_in_fov(fov_map, self.x, self.y):    # check fov before drawing
+			# set the color and then draw the character that represented this object at its position
+			tcod.console_set_default_foreground(con, self.color)
+			tcod.console_put_char(con, self.x, self.y, self.char, tcod.BKGND_NONE)
 
 	def clear(self):
 		# erase the character that represents this object
@@ -225,17 +234,30 @@ def render_all():
 	global fov_recompute
 
 	if fov_recompute:
+		# recomputer FOV is needed (the player moved or something)
 		fov_recompute = False
-		tcod.map_compute_fov(fov_map, player.x, player.y)
+		tcod.map_compute_fov(fov_map, player.x, player.y, TORCH_RADIUS, FOV_LIGHT_WALLS, FOV_ALGO)
 		# go through all the tiles, and set their background color
 		for y in range(MAP_HEIGHT):
 			for x in range(MAP_WIDTH):
 				visible = tcod.map_is_in_fov(fov_map, x, y)
 				wall = map[x][y].block_sight
-				if wall:
-					tcod.console_set_char_background(con, x, y, color_dark_wall, tcod.BKGND_SET)
+				if not visible:
+					# if it's not visible right now, the player can only see it if its explored
+					if map[x][y].explored:
+						#it's out of players fov
+						if wall:
+							tcod.console_set_char_background(con, x, y, color_dark_wall, tcod.BKGND_SET)
+						else:
+							tcod.console_set_char_background(con, x, y, color_dark_ground, tcod.BKGND_SET)
 				else:
-					tcod.console_set_char_background(con, x, y, color_dark_ground, tcod.BKGND_SET)
+					#it's visible
+					if wall:
+						tcod.console_set_char_background(con, x, y, color_light_wall, tcod.BKGND_SET)
+					else:
+						tcod.console_set_char_background(con, x, y, color_light_ground, tcod.BKGND_SET)
+					# since it's visible, explore it
+					map[x][y].explored = True
 
 	# draw all objects in the list
 	for object in objects:
@@ -243,6 +265,7 @@ def render_all():
 
 	# blit the contents of "con" to the root console and present it
 	tcod.console_blit(con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
+
 
 def handle_keys():
 	# key = tcod.console_check_for_keypress() # Real time
@@ -258,12 +281,16 @@ def handle_keys():
 		# movement keys
 		if tcod.console_is_key_pressed(tcod.KEY_UP):
 			player_move_or_attack(0, -1)
+			fov_recompute = True
 		elif tcod.console_is_key_pressed(tcod.KEY_DOWN):
 			player_move_or_attack(0, 1)
+			fov_recompute = True
 		elif tcod.console_is_key_pressed(tcod.KEY_LEFT):
 			player_move_or_attack(-1, 0)
+			fov_recompute = True
 		elif tcod.console_is_key_pressed(tcod.KEY_RIGHT):
 			player_move_or_attack(1, 0)
+			fov_recompute = True
 	else:
 		return 'didnt-take-turn'
 
