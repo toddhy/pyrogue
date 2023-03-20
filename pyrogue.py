@@ -126,6 +126,21 @@ class Fighter:
 		self.hp = hp
 		self.defense = defense
 		self.power = power
+	def take_damage(self, damage):
+		# apply damage if possible
+		if damage > 0:
+			self.hp -= damage
+
+	def attack(self, target):
+		# a simple formula for attack damage
+		damage = self.power - target.fighter.defense
+
+		if damage > 0:
+			# make the target take some damage
+			print(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
+			target.fighter.take_damage(damage)
+		else:
+			print("%s attacks %s but it has no effect!" % (self.owner.name.capitalize(), target.name))
 
 class BasicMonster:
 	#AI for a basic monster
@@ -139,7 +154,7 @@ class BasicMonster:
 
 			# close enough, attack! (if the player is still alive)
 			elif player.fighter.hp > 0:
-				print('The attack of the ' + monster.name + ' bounces off your shiny metal armor!')
+				monster.fighter.attack(player)
 
 def create_room(room):
 	global map
@@ -266,6 +281,11 @@ def render_all():
 	# blit the contents of "con" to the root console and present it
 	tcod.console_blit(con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 
+	# show the player's stats
+	tcod.console_set_default_foreground(con, tcod.white)
+	tcod.console_print_ex(con, 1, SCREEN_HEIGHT - 2, tcod.BKGND_NONE, tcod.LEFT,
+		'HP: ' + str(player.fighter.hp) + '/' + str(player.fighter.max_hp))
+
 
 def handle_keys():
 	# key = tcod.console_check_for_keypress() # Real time
@@ -349,7 +369,7 @@ def player_move_or_attack(dx, dy):
 	
 	# attack if target found, move otherwise
 	if target is not None:
-		print('The ' + target.name + ' laughs at your puny efforts to attack him!')
+		player.fighter.attack(target)
 	else:
 		player.move(dx,dy)
 		fov_recompute = True
