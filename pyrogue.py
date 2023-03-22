@@ -118,18 +118,31 @@ class Object:
 		dx = other.x - self.x
 		dy = other.y - self.y
 		return math.sqrt(dx ** 2 + dy ** 2)
+	
+	def send_to_back(self):
+		# make this object be drawn first, so all others appear above it if they're in the same tile
+		global objects
+		objects.remove(self)
+		objects.insert(0, self)
 
 class Fighter:
 	#combat-related properties and methods (monster, player, NPC)
-	def __init__(self, hp, defense, power):
+	def __init__(self, hp, defense, power, death_function=None):
 		self.max_hp = hp
 		self.hp = hp
 		self.defense = defense
 		self.power = power
+		self.death_function = death_function
+
 	def take_damage(self, damage):
 		# apply damage if possible
 		if damage > 0:
 			self.hp -= damage
+		# check for death. if there's a death function, call it
+		if self.hp <= 0:
+			function = self.death_function
+			if function is not None:
+				function(self.owner)
 
 	def attack(self, target):
 		# a simple formula for attack damage
@@ -274,9 +287,12 @@ def render_all():
 					# since it's visible, explore it
 					map[x][y].explored = True
 
-	# draw all objects in the list
+	# draw all objects in the list, except the player.
+	# we want it to always appear over all other objects! so its drawn later
 	for object in objects:
-		object.draw()
+		if object != player:
+			object.draw()
+	player.draw()
 
 	# blit the contents of "con" to the root console and present it
 	tcod.console_blit(con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
@@ -326,7 +342,7 @@ def place_objects(room):
 		if not is_blocked(x, y):
 			if tcod.random_get_int(0, 0, 100) < 80:  # 80% chance of orc
 				#create an orc
-				fighter_component = Fighter(hp=10, defense=0, power=3)
+				fighter_component = Fighter(hp=10, defense=0, power=3, death_function=monster_death)
 				ai_component = BasicMonster()
 
 				monster = Object(x, y, 'o', 'orc', tcod.desaturated_green,
@@ -363,7 +379,7 @@ def player_move_or_attack(dx, dy):
 	# try to find an attackable object there
 	target = None
 	for object in objects:
-		if object.x == x and object.y == y:
+		if object.fighter and object.x == x and object.y == y:
 			target = object
 			break
 	
@@ -374,7 +390,26 @@ def player_move_or_attack(dx, dy):
 		player.move(dx,dy)
 		fov_recompute = True
 
+def player_death(player):
+	#the game ended!
+	global game_state
+	print('You died!')
+	game_state = 'dead'
 
+	#for added effect, transform player into a corpse!
+	player.char = '%'
+	player.color = tcod.dark_red
+
+def monster_death(monster):
+	#transform it into a nasty corpse! it doesn't block, can't be attacked and doesn't move
+	print(monster.name.capitalize() + ' is dead!')
+	monster.char = '%'
+	monster.color = tcod.dark_red
+	monster.blocks = False
+	monster.fighter = None
+	monster.ai = None
+	monster.name = 'remains of ' + monster.name
+	monster.send_to_back()
 
 game_state = 'playing'
 player_action = None
@@ -390,7 +425,7 @@ tcod.sys_set_fps(LIMIT_FPS)
 con = tcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
 
 # create object representing player
-fighter_component = Fighter(hp=30, defense=2, power=5)
+fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
 player = Object(0, 0, '@', 'player', tcod.white, blocks=True, fighter=fighter_component)
 
 # the list of objects
