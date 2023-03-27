@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import tcod as tcod, math
+import tcod as tcod, math, textwrap
 
 # FOV constants
 FOV_ALGO = 0
@@ -20,6 +20,13 @@ MAP_HEIGHT = 45
 BAR_WIDTH = 20
 PANEL_HEIGHT = 7
 PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
+
+# message bar constants
+MSG_X = BAR_WIDTH + 2
+MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
+MSG_HEIGHT = PANEL_HEIGHT - 1
+# create the list of game messages and their colors, starts empty
+game_msgs = []
 
 LIMIT_FPS = 20 # 20 frames per second maximum
 
@@ -438,9 +445,27 @@ def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
 	tcod.console_set_default_foreground(panel, tcod.white)
 	tcod.console_print_ex(panel, int(x + total_width / 2), y, tcod.BKGND_NONE, tcod.CENTER, name + ': ' + str(value) + '/' + str(maximum))
 
+def message(new_msg, color = tcod.white):
+	#split the message if necessary, among multiple lines
+	new_msg_lines = textwrap.wrap(new_msg, MSG_WIDTH)
+
+	for line in new_msg_lines:
+		#if the buffer is full, remove the first line to make room for the new one
+		if len(game_msgs) == MSG_HEIGHT:
+			del game_msgs[0]
+
+		#add the new line as a tuple, with text and the color
+		game_msgs.append( (line, color) )
+	
+	#print the game messages, one line at a time
+	y = 1
+	for (line, color) in game_msgs:
+		tcod.console_set_default_foreground(panel, color)
+		tcod.console_print_ex(panel, MSG_X, y, tcod.BKGND_NONE, tcod.LEFT, line)
+		y += 1
+
 game_state = 'playing'
 player_action = None
-
 
 #########################################
 # Initialization & Main Loop
@@ -472,6 +497,8 @@ fov_recompute = True
 game_state = 'playing'
 player_action = None
 
+# warm welcoming message!
+message('Welcome stranger! Prepare to perish in the Tombs of the Ancient Kings.', tcod.red)
 while not tcod.console_is_window_closed():
 
 	# render the screen
