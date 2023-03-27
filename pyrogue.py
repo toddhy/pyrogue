@@ -16,6 +16,11 @@ SCREEN_HEIGHT = 50
 MAP_WIDTH = 80
 MAP_HEIGHT = 45
 
+# sizes and coordinates relevant for the GUI
+BAR_WIDTH = 20
+PANEL_HEIGHT = 7
+PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
+
 LIMIT_FPS = 20 # 20 frames per second maximum
 
 color_dark_wall = tcod.Color(0, 0, 100)
@@ -297,10 +302,15 @@ def render_all():
 	# blit the contents of "con" to the root console and present it
 	tcod.console_blit(con, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 
+	# prepare to render the GUI panel
+	tcod.console_set_default_background(panel, tcod.black)
+	tcod.console_clear(panel)
+
 	# show the player's stats
-	tcod.console_set_default_foreground(con, tcod.white)
-	tcod.console_print_ex(con, 1, SCREEN_HEIGHT - 2, tcod.BKGND_NONE, tcod.LEFT,
-		'HP: ' + str(player.fighter.hp) + '/' + str(player.fighter.max_hp))
+	render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp, tcod.light_red, tcod.darker_red)
+
+	# blit the contents of "panel" to the root console
+	tcod.console_blit(panel, 0, 0, SCREEN_WIDTH, PANEL_HEIGHT, 0, 0, PANEL_Y)
 
 
 def handle_keys():
@@ -411,6 +421,23 @@ def monster_death(monster):
 	monster.name = 'remains of ' + monster.name
 	monster.send_to_back()
 
+def render_bar(x, y, total_width, name, value, maximum, bar_color, back_color):
+	#render a bar (HP, experience, etc.) first calculate the width of the bar
+	bar_width = int(float(value) / maximum * total_width)
+
+	#render the background first
+	tcod.console_set_default_background(panel, back_color)
+	tcod.console_rect(panel, x, y, total_width, 1, False, tcod.BKGND_SCREEN)
+
+	#now render the bar on top
+	tcod.console_rect(panel, x, y, bar_width, 1, False, tcod.BKGND_SCREEN)
+	if bar_width > 0:
+		tcod.console_rect(panel, x, y, bar_width, 1, False, tcod.BKGND_SCREEN)
+	
+	#finally, some centered text with the values
+	tcod.console_set_default_foreground(panel, tcod.white)
+	tcod.console_print_ex(panel, int(x + total_width / 2), y, tcod.BKGND_NONE, tcod.CENTER, name + ': ' + str(value) + '/' + str(maximum))
+
 game_state = 'playing'
 player_action = None
 
@@ -423,6 +450,7 @@ tcod.console_set_custom_font(font_path, font_flags)
 tcod.console_init_root(SCREEN_WIDTH, SCREEN_HEIGHT,window_title, fullscreen)
 tcod.sys_set_fps(LIMIT_FPS)
 con = tcod.console_new(SCREEN_WIDTH, SCREEN_HEIGHT)
+panel = tcod.console_new(SCREEN_WIDTH, PANEL_HEIGHT)
 
 # create object representing player
 fighter_component = Fighter(hp=30, defense=2, power=5, death_function=player_death)
