@@ -162,10 +162,10 @@ class Fighter:
 
 		if damage > 0:
 			# make the target take some damage
-			print(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
+			message(self.owner.name.capitalize() + ' attacks ' + target.name + ' for ' + str(damage) + ' hit points.')
 			target.fighter.take_damage(damage)
 		else:
-			print("%s attacks %s but it has no effect!" % (self.owner.name.capitalize(), target.name))
+			message("%s attacks %s but it has no effect!" % (self.owner.name.capitalize(), target.name))
 
 class BasicMonster:
 	#AI for a basic monster
@@ -312,7 +312,13 @@ def render_all():
 	# prepare to render the GUI panel
 	tcod.console_set_default_background(panel, tcod.black)
 	tcod.console_clear(panel)
-
+	
+	#print the game messages, one line at a time
+	y = 1
+	for (line, color) in game_msgs:
+		tcod.console_set_default_foreground(panel, color)
+		tcod.console_print_ex(panel, MSG_X, y, tcod.BKGND_NONE, tcod.LEFT, line)
+		y += 1
 	# show the player's stats
 	render_bar(1, 1, BAR_WIDTH, 'HP', player.fighter.hp, player.fighter.max_hp, tcod.light_red, tcod.darker_red)
 
@@ -410,7 +416,7 @@ def player_move_or_attack(dx, dy):
 def player_death(player):
 	#the game ended!
 	global game_state
-	print('You died!')
+	message('You died!')
 	game_state = 'dead'
 
 	#for added effect, transform player into a corpse!
@@ -419,7 +425,7 @@ def player_death(player):
 
 def monster_death(monster):
 	#transform it into a nasty corpse! it doesn't block, can't be attacked and doesn't move
-	print(monster.name.capitalize() + ' is dead!')
+	message(monster.name.capitalize() + ' is dead!')
 	monster.char = '%'
 	monster.color = tcod.dark_red
 	monster.blocks = False
@@ -457,13 +463,6 @@ def message(new_msg, color = tcod.white):
 		#add the new line as a tuple, with text and the color
 		game_msgs.append( (line, color) )
 	
-	#print the game messages, one line at a time
-	y = 1
-	for (line, color) in game_msgs:
-		tcod.console_set_default_foreground(panel, color)
-		tcod.console_print_ex(panel, MSG_X, y, tcod.BKGND_NONE, tcod.LEFT, line)
-		y += 1
-
 game_state = 'playing'
 player_action = None
 
