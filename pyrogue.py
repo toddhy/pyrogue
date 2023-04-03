@@ -7,6 +7,7 @@ FOV_ALGO = 0
 FOV_LIGHT_WALLS = True
 TORCH_RADIUS = 10
 
+MAX_ROOM_ITEMS = 2
 MAX_ROOM_MONSTERS = 3
 # size of window
 SCREEN_WIDTH = 80
@@ -25,6 +26,7 @@ PANEL_Y = SCREEN_HEIGHT - PANEL_HEIGHT
 MSG_X = BAR_WIDTH + 2
 MSG_WIDTH = SCREEN_WIDTH - BAR_WIDTH - 2
 MSG_HEIGHT = PANEL_HEIGHT - 1
+
 # create the list of game messages and their colors, starts empty
 game_msgs = []
 
@@ -80,21 +82,22 @@ class Tile:
 class Object:
 	# this is a generic object: the player, a monster, an item, the stairs, etc.
 	# it's always represented by a character on the screen.
-	def __init__(self, x, y, char, name, color, blocks=False, fighter=None, ai=None):
+	def __init__(self, x, y, char, name, color, blocks=False, fighter=None, ai=None, item=None):
 		self.name = name
 		self.blocks = blocks
 		self.x = x
 		self.y = y
 		self.char = char
 		self.color = color
-
 		self.fighter = fighter
 		if self.fighter:   # let the fighter component know who owns it
 			self.fighter.owner = self
-
 		self.ai = ai
 		if self.ai:   # let the AI component know who owns it
 			self.ai.owner = self
+		self.item = item
+		if self.item:   #let the Item component know who owns it
+			self.item.owner = self
 
 	def move(self, dx, dy):
 		# move by the given amount, if the destination is not blocked
@@ -181,6 +184,17 @@ class BasicMonster:
 			elif player.fighter.hp > 0:
 				monster.fighter.attack(player)
 
+class Item:
+	#an item that can be picked up and used.
+	def pick_up(self):
+		#add to he player's inventory and remove from the map
+		if len(inventory) >= 26:
+			message('Your inventory is full, cannot pick up' + self.owner.name + '.', tcod.red)
+		else:
+			inventory.append(self.owner)
+			objects.remove(self.owner)
+			message('You picked up a ' + self.owner.name + '!', tcod.green)
+			
 def create_room(room):
 	global map
 	# go through the tiles in the rectangle and make them passable
@@ -350,7 +364,17 @@ def handle_keys():
 		elif tcod.console_is_key_pressed(tcod.KEY_RIGHT):
 			player_move_or_attack(1, 0)
 			fov_recompute = True
+		#test for other keys
+		key_char = chr(key.c)
+
+		if key_char == 'g':
+			#pick up an item
+			for object in objects:   #look for an item in the player's tile
+				if object.x == player.x and object.y == player.y and object.item:
+					object.item.pick_up()
+					break
 	else:
+
 		return 'didnt-take-turn'
 
 def place_objects(room):
@@ -359,8 +383,8 @@ def place_objects(room):
 
 	for i in range(num_monsters):
 		# choose random spot for this monster
-		x = tcod.random_get_int(0, room.x1, room.x2)
-		y = tcod.random_get_int(0, room.y1, room.y2)
+		x = tcod.random_get_int(0, room.x1+1, room.x2-1)
+		y = tcod.random_get_int(0, room.y1+1, room.y2-1)
 
 		if not is_blocked(x, y):
 			if tcod.random_get_int(0, 0, 100) < 80:  # 80% chance of orc
@@ -379,6 +403,23 @@ def place_objects(room):
 					blocks=True,fighter=fighter_component, ai=ai_component)
 
 			objects.append(monster)
+
+	num_items = tcod.random_get_int(0, 0, MAX_ROOM_ITEMS)
+
+	for i in range(num_items):
+		#choose random spot for this item
+		x = tcod.random_get_int(0, room.x1+1, room.x2-1)
+		y = tcod.random_get_int(0, room.y1+1, room.y2-1)
+
+		#only place it if the thile is not blocked
+		if not is_blocked(x, y):
+			#create a healing potion
+			item_component = Item()
+			item = Object(x, y, '!', 'healing potion', tcod.violet, item=item_component)
+
+			objects.append(item)
+			item.send_to_back()  #items appear below other objects
+
 
 def is_blocked(x, y):
 	#first test the map tile
@@ -483,6 +524,8 @@ player = Object(0, 0, '@', 'player', tcod.white, blocks=True, fighter=fighter_co
 # the list of objects
 objects = [player]
 
+#inventory
+inventory = []
 #generate map (at this point it's not drawn to the screen)
 make_map()
 
