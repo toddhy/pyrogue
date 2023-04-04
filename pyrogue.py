@@ -2,6 +2,7 @@
 
 import tcod as tcod, math, textwrap
 
+INVENTORY_WIDTH = 50
 # FOV constants
 FOV_ALGO = 0
 FOV_LIGHT_WALLS = True
@@ -373,6 +374,9 @@ def handle_keys():
 				if object.x == player.x and object.y == player.y and object.item:
 					object.item.pick_up()
 					break
+		elif key_char == 'i':
+			#show the inventory
+			inventory_menu('Press the key next to an item to use it, or any other to cancel.\n')
 	else:
 
 		return 'didnt-take-turn'
@@ -504,6 +508,47 @@ def message(new_msg, color = tcod.white):
 		#add the new line as a tuple, with text and the color
 		game_msgs.append( (line, color) )
 	
+def menu(header, options, width):
+	if len(options) > 26: raise ValueError('Cannot have a menu with more than 26 options.')
+
+	#calculate total height for the header (after auto-wrap) and one line per option
+	header_height = tcod.console_get_height_rect(con, 0, 0, width, SCREEN_HEIGHT, header)
+	height = len(options) + header_height
+
+	#create an off-screen console that represents the menu's window
+	window = tcod.console_new(width, height)
+
+	#print the header, with auto-wrap
+	tcod.console_set_default_foreground(window, tcod.white)
+	tcod.console_print_rect_ex(window, 0, 0, width, height, tcod.BKGND_NONE, tcod.LEFT, header)
+
+	#print all the options
+	y = header_height
+	letter_index = ord('a')
+	for option_text in options:
+		text = '(' + chr(letter_index) + ') ' + option_text
+		tcod.console_print_ex(window, 0, y, tcod.BKGND_NONE, tcod.LEFT, text)
+		y += 1
+		letter_index += 1
+
+	#blit the contents of "window" to the root console
+	x = SCREEN_WIDTH/2 - width/2
+	y = SCREEN_HEIGHT/2 - height/2
+	tcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+
+	#present the root console to the player and wait for a key-press
+	tcod.console_flush()
+	key = tcod.console_wait_for_keypress(True)
+
+def inventory_menu(header):
+	#show a menu with each item of the inventory as an option
+	if len(inventory) == 0:
+		options = ['Inventory is empty.']
+	else:
+		options = [item.name for item in inventory]
+	
+	index = menu(header, options, INVENTORY_WIDTH)
+
 game_state = 'playing'
 player_action = None
 
