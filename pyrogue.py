@@ -3,6 +3,7 @@
 import tcod as tcod, math, textwrap
 
 INVENTORY_WIDTH = 50
+HEAL_AMOUNT = 4
 # FOV constants
 FOV_ALGO = 0
 FOV_LIGHT_WALLS = True
@@ -170,6 +171,11 @@ class Fighter:
 			target.fighter.take_damage(damage)
 		else:
 			message("%s attacks %s but it has no effect!" % (self.owner.name.capitalize(), target.name))
+	def heal(self, amount):
+		#heal by the given amount, without going over the maximum
+		self.hp += amount
+		if self.hp > self.max_hp:
+			self.hp = self.max_hp
 
 class BasicMonster:
 	#AI for a basic monster
@@ -186,6 +192,16 @@ class BasicMonster:
 				monster.fighter.attack(player)
 
 class Item:
+	def __init__(self, use_function=None):
+		self.use_function = use_function
+	def use(self):
+		#just call the "use_function" if it is defined
+		if self.use_function is None:
+			message('The ' + self.ower.name + ' cannot be used.')
+		else:
+			if self.use_function() != 'cancelled':
+				inventory.remove(self.owner)  #destroy after use, unless it was cancelled for some reason
+
 	#an item that can be picked up and used.
 	def pick_up(self):
 		#add to he player's inventory and remove from the map
@@ -375,8 +391,10 @@ def handle_keys():
 					object.item.pick_up()
 					break
 		elif key_char == 'i':
-			#show the inventory
-			inventory_menu('Press the key next to an item to use it, or any other to cancel.\n')
+			#show the inventory; if an item is selected, use it
+			chosen_item = inventory_menu('Press the key next to an item to use it, or any other to cancel.\n')
+			if chosen_item is not None:
+				chosen_item.use()
 	else:
 
 		return 'didnt-take-turn'
@@ -418,7 +436,7 @@ def place_objects(room):
 		#only place it if the thile is not blocked
 		if not is_blocked(x, y):
 			#create a healing potion
-			item_component = Item()
+			item_component = Item(use_function=cast_heal)
 			item = Object(x, y, '!', 'healing potion', tcod.violet, item=item_component)
 
 			objects.append(item)
@@ -534,11 +552,17 @@ def menu(header, options, width):
 	#blit the contents of "window" to the root console
 	x = SCREEN_WIDTH/2 - width/2
 	y = SCREEN_HEIGHT/2 - height/2
-	tcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+	#tcod.console_blit(window, 0, 0, width, height, 0, x, y, 1.0, 0.7)
+	#tcod.console_blit(window, 0, 0, width, height, x, y, 1.0, 0.7)
+	tcod.console_blit(window, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, 0)
 
 	#present the root console to the player and wait for a key-press
 	tcod.console_flush()
 	key = tcod.console_wait_for_keypress(True)
+	#convert the ASCII code to and index; if it corresponds to an option, return it
+	index = key.c - ord('a')
+	if index >= 0 and index < len(options): return index
+	return None
 
 def inventory_menu(header):
 	#show a menu with each item of the inventory as an option
@@ -548,7 +572,16 @@ def inventory_menu(header):
 		options = [item.name for item in inventory]
 	
 	index = menu(header, options, INVENTORY_WIDTH)
+	if index is None or len(inventory) == 0: return None
+	return inventory[index].item
 
+def cast_heal():
+	#heal the player
+	if player.fighter.hp == player.fighter.max_hp:
+		message('You are already at full health.', tcod.red)
+		return 'cancelled'
+	message('Your wounds start to feel better!', tcod.light_violet)
+	player.fighter.heal(HEAL_AMOUNT)
 game_state = 'playing'
 player_action = None
 
