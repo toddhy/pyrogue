@@ -4,6 +4,9 @@ import tcod as tcod, math, textwrap
 
 INVENTORY_WIDTH = 50
 HEAL_AMOUNT = 4
+LIGHTNING_DAMAGE = 20
+LIGHTNING_RANGE = 5
+
 # FOV constants
 FOV_ALGO = 0
 FOV_LIGHT_WALLS = True
@@ -435,9 +438,15 @@ def place_objects(room):
 
 		#only place it if the thile is not blocked
 		if not is_blocked(x, y):
-			#create a healing potion
-			item_component = Item(use_function=cast_heal)
-			item = Object(x, y, '!', 'healing potion', tcod.violet, item=item_component)
+			dice = tcod.random_get_int(0,0,100)
+			if dice < 70:
+				#create a healing potion (70% chance)
+				item_component = Item(use_function=cast_heal)
+				item = Object(x, y, '!', 'healing potion', tcod.violet, item=item_component)
+			else:
+				#create a lightning bolt scroll (30% chance)
+				item_component = Item(use_function = cast_lightning)
+				item = Object(x, y, '#', 'scroll of lightning bolt', tcod.light_yellow, item=item_component)
 
 			objects.append(item)
 			item.send_to_back()  #items appear below other objects
@@ -582,6 +591,31 @@ def cast_heal():
 		return 'cancelled'
 	message('Your wounds start to feel better!', tcod.light_violet)
 	player.fighter.heal(HEAL_AMOUNT)
+def cast_lightning():
+	#find the closest enemy ( inside maximum range ) and damage it
+	monster = closest_monster(LIGHTNING_RANGE)
+	if monster is None:  #no enemy found within maximum range
+		message('No enemy is close enough to strike.', tcod.red)
+		return 'cancelled'
+	
+	#zap it!
+	message('A lightning bolt strikes the ' + monster.name + ' with a loud thunder! The damage is '
+		+ str(LIGHTNING_DAMAGE) + ' hit points. ', tcod.light_blue)
+	monster.fighter.take_damage(LIGHTNING_DAMAGE)
+
+def closest_monster(max_range):
+	#find the closest enemy, up to a maximum range, and in the player's FOV
+	closest_enemy = None
+	closest_dist = max_range + 1   #start with a (slightly more than) maximum range
+	
+	for object in objects:
+		if object.fighter and not object == player and tcod.map_is_in_fov(fov_map, object.x, object.y):
+			#calculate distance between this object and the player
+			dist = player.distance_to(object)
+			if dist < closest_dist:   #it's closer, so remember it
+				closest_enemy = object
+				closest_dist = dist
+	return closest_enemy
 game_state = 'playing'
 player_action = None
 
